@@ -1,0 +1,57 @@
+public class CaseTriggerHandler {
+    
+  public void OnBeforeUpdate(List<Case > updatedList, Map<Id,Case> OldMap){
+        
+        calculateLogistics(updatedList, OldMap);  
+    }
+    
+    public void calculateLogistics(List<Case > updatedList, Map<Id,Case> OldMap){
+        
+        Map<String, String> refDataMap = new Map<String, String>();
+        
+         for(BYT_Reference_Data__c refData : [Select Case_API_Name__c, Cost_Average__c, Weight_Kg__c from BYT_Reference_Data__c]){
+             refDataMap.put(refData.Case_API_Name__c, refData.Cost_Average__c+'~'+refData.Weight_Kg__c);
+         }
+        
+        for(Case cs : updatedList){
+            
+            if(cs.Status == 'Completed' && cs.Status != OldMap.get(cs.Id).Status){
+                system.debug('*** Inside for loop ***');
+                
+                Decimal totalItems = 0;
+                Decimal totalCost = 0;
+                Decimal totalWeight = 0;
+                system.debug('refDataMap --> '+refDataMap);
+                for (String fieldAPIName : refDataMap.keySet()){
+          
+                    if(cs.get(fieldAPIName) != null){
+                        System.debug('field API name is ' + fieldAPIName);
+                        System.debug('field value is ' + cs.get(fieldAPIName));
+                        Decimal itemCnt = (Decimal)cs.get(fieldAPIName);
+                        
+                        Decimal cost = decimal.valueOf(refDataMap.get(fieldAPIName).split('~')[0]);
+                        Decimal weight =decimal.valueOf(refDataMap.get(fieldAPIName).split('~')[1]);
+                        System.debug('cost is ' + cost);
+                        System.debug('weight is ' + weight);
+                        
+                        totalItems = totalItems + itemCnt;
+                        totalCost = totalCost + (cost*itemCnt);
+                        totalWeight = totalWeight + (weight*itemCnt);
+                        
+                        System.debug('totalItems is ' + totalItems);
+                        System.debug('totalCost is ' + totalCost);                        
+                        System.debug('totalWeight is ' + totalWeight);
+                        
+                        cs.BYT_Total_Items__c = totalItems;
+                        cs.BYT_Total_Cost__c = totalCost;
+                        cs.BYT_Total_Weight__c = totalWeight;
+                        
+                    }
+                
+             }
+            }            
+        }
+        
+    }    
+}
+
